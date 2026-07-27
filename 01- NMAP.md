@@ -10,7 +10,7 @@
         
     4. **تحليل إعدادات الأمان** زي الـ Firewall والـ IDS (Intrusion Detection System).
 
-### **أهم استخدامات Nmap**
+## **أهم استخدامات Nmap**
 
 - **تدقيق أمان الشبكات (Security Audit).**
     
@@ -26,7 +26,7 @@
     
 - **تقييم الثغرات (Vulnerability Assessment).**
 
-### **هيكل Nmap – Nmap Architecture**
+## **هيكل Nmap – Nmap Architecture**
 
 تقريبًا أي فحص باستخدام Nmap بيتقسم للمراحل دي:
 
@@ -111,7 +111,7 @@ nmap <scan types> <options> <target>
 
 ---
 
-## **ملاحظات مهمة:**
+### **ملاحظات مهمة:**
 
 1. **لازم تخزن كل Scan** (باستخدام `-oA`) علشان تقدر ترجع له وتقارن النتائج أو تستخدمها في التقرير.
     
@@ -120,10 +120,10 @@ nmap <scan types> <options> <target>
 
 ---
 
-## **السيناريوهات المختلفة لفحص الأجهزة (Host Discovery)**
+### **السيناريوهات المختلفة لفحص الأجهزة (Host Discovery)**
 
 
-### **1. فحص شبكة كاملة (Network Range Scan)**
+#### **1. فحص شبكة كاملة (Network Range Scan)**
 
 لو عايز تشوف كل الأجهزة اللي شغالة في رينج كامل (مثلاً /24):
 
@@ -149,7 +149,7 @@ sudo nmap 10.129.2.0/24 -sn -oA tnet | grep for | cut -d" " -f5
 
 
 
-### **2. فحص قائمة IP جاهزة (Scan IP List)**
+#### **2. فحص قائمة IP جاهزة (Scan IP List)**
 
 لو معاك ملف hosts.lst فيه الـ IPs:
 
@@ -175,7 +175,7 @@ sudo nmap -sn -oA tnet -iL hosts.lst | grep for | cut -d" " -f5
 
 
 
-### **3. فحص مجموعة IP صغيرة (Scan Multiple IPs)**
+#### **3. فحص مجموعة IP صغيرة (Scan Multiple IPs)**
 
 لو عندك IPs متفرقة:
 
@@ -192,7 +192,7 @@ sudo nmap -sn -oA tnet 10.129.2.18-20 | grep for | cut -d" " -f5
 `10.129.2.18 10.129.2.19 10.129.2.20`
 
 
-### **4. فحص IP واحد (Single Host Discovery)**
+#### **4. فحص IP واحد (Single Host Discovery)**
 
 قبل ما تفحص بورتات وخدمات، تأكد إن الجهاز حي:
 
@@ -205,7 +205,7 @@ sudo nmap 10.129.2.18 -sn -oA host
 
     
 
-## **تفاصيل تقنية مهمة عن الـ Ping في Nmap**
+### **تفاصيل تقنية مهمة عن الـ Ping في Nmap**
 
 - بشكل افتراضي: Nmap بيستخدم **ARP Ping أولًا** (في الشبكات المحلية LAN).
     
@@ -220,7 +220,7 @@ sudo nmap 10.129.2.18 -sn -oA host
 
 ---
 
-### **مثال: فرض استخدام ICMP Echo بدل ARP**
+#### **مثال: فرض استخدام ICMP Echo بدل ARP**
 
 ```bash
 sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace
@@ -233,7 +233,7 @@ sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace
     
 
 
-### **تعطيل الـ ARP Ping وإرسال ICMP فقط**
+#### **تعطيل الـ ARP Ping وإرسال ICMP فقط**
 
 `sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace --disable-arp-ping`
 
@@ -246,7 +246,7 @@ sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace
 
 ---
 
-## **الخلاصة**
+### **الخلاصة**
 
 1. **ابدأ دائمًا بـ Host Discovery قبل أي Port Scan.**
     
@@ -261,4 +261,98 @@ sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace
 6. **الNmap في الشبكات الداخلية بيستخدم افتراضيا ال**ARP Ping** لأ عادة الشركات بتمنع ال**ICMP Ping** العادي بينها وبين بعض ,عشان كده وانت بتفحص شبكة انت جواها اللي هيشتغل ال**ARP Ping** ,على عكس لو بتفحص شبكة خارجية عنك او انت براها ال**ARP Ping** مش بيشتغل أصلا لأن هو بيشتغل في **Layer 2** وكمان بيحتاج يعمل **Broadcast** و دي حاجة الراوترات بتمنعها ,فهتستخدم ال**ICMP Ping**.**
 
 ---
+
+## فحص المضيفين والمنافذ (**Port and Host Scanning**)
+### 1. **الهدف من الPort Scanning:**
+- معرفة ال**Ports** والخدمات التي تعمل عليها.
+- معرفة اصدار الخدمات (**Service Versions**).
+- معلومات عن الخدمات.
+- معرفة نظام التشغيل.
+
+### 2. حالات المنفاذ ال6 (**States of Ports**):
+
+| الحالة            | الشرح                                                                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **open** | .المنفذ مفتوح ويستقبل اتصالات                                                                                                                                    |
+| **closed** | `RST` تحتوي TCP المنفذ مغلق والجهاز يرد بحزم                                                                                                                     |
+| **Filtered** | (يمنع تحديد الحالة Firewallال) لا رد أو رد غامض                                 |
+| **Unfiltered** |(**open or close**) المنفذ متاح الوصول ليه بس معرفش (TCP-ACK scanبيحصل في ال)             | 
+| open \| filtered | \|If we do not get a response for a specific port, `Nmap` will set it to that state. This indicates that a firewall or packet filter may protect the port.\|        |
+| closed \| filterd | This state only occurs in the **IP ID idle** scans and indicates that it was impossible to determine if the scanned port is closed or filtered by a firewall.\|         |
+
+### 3. مسح منافذ ال (SYN Scan vs Connect Scan)TCP
+#### **أولا:** (-sS) SYN Scan 
+- يتم بشكل افتراضي عند تشغيل Nmap ك root.
+- يسمى Half-Open Scan لأنه يرسل SYN,وينتظر SYN-ACK,ثم يغبلق الاتصال قبل اكتماله.
+- سريع وأكثر تخفيا (لأنه لا يكمل TCP handshake).
+ 
+
+#### **ثانيا:** (-sT) Connect Scan
+- يتم افتراضيا بدون صلاحية الroot.
+- بيعمل (SYN=>SYN-ACK=>ACK) TCP handshake كاملة.
+- أكثر دقة وأقل تخفيا (بيتم تسجيله في ملفات الlogs).
+- جيد إذا أردت التأكد بدقة أو إذا كان جدار الحماية يسمح بالاتصالات الصادرة فقط.
+
+
+### 4. أمثلة على الNmap Scans:
+#### فحص أشهر 10 منافذ TCP:
+```bash
+sudo nmap 10.129.2.28 --top-ports=10 
+```
+- يظهر المنفذ وحالته (open,closed,filtered) وخدمته.
+- **Top 10** => `21|22|23|25|80|110|139|443|445|3389`  
+#### استخدام packet-trace-- لمعرفة ما يحدث كاملا خلف الكواليس
+```bash
+sudo nmap 10.129.2.28 -p 21 --packet-trace -Pn -n --disable-arp-ping
+```
+- SENT => ألحزمة المرسلة
+- RCVD => الحزمة المستقبلة
+- `-Pn` => من غير ما يتأكد UP لأنه بيفترض يعني أن الجهاز pingبيعطل خدمة ال
+- `-n` => DNSتعطيل فحص ال
+
+#### Connect Scan on HTTPS (443):
+```bash
+sudo nmap 10.129.2.28 -p 443 --packet-trace --disable-arp-ping -Pn -n -sT --reason
+```
+`SYN-ACK` => المنفذ مفتوح
+`RST` => المنفذ مغلق
+The `Connect` scan (also known as a full TCP connect scan).
+
+### 5. حالات الFiltered Ports:
+- إذا كان ال**Firewall** يسقط الحزمة => لا رد ,Nmap يعيد المحاولة 10 مرات (بطئ).
+- إذا كان ال**Firewall** يرفض الحزمة => يوجد رد ,يرد ب Port unreachable (type=3/code=3)
+
+### 6. فحص منافذ UDP (-sU) :
+- أبطأ من TCP لأنه **stateless** بلا **handshake**.
+- غالبا لا يوجد رد إذا كان المنفذ مفتوح.
+- إذا المنفذ مغلق → الجهاز يرسل ICMP port unreachable.
+- إذا الرد غامض → الحالة open|filtered.
+
+## 7. تحديد إصدار الخدمة (-sV):
+عشان تعرف نوع وإصدار السيرفر والخدمة:
+```bash
+sudo nmap 10.129.2.28 -p 445 -sV --reason -Pn -n --disable-arp-ping --packet-trace
+```
+
+
+- مفيد جداً لاختيار الـ exploit المناسب.
+- يظهر تفاصيل مثل: نوع SMB أو Apache أو SSH وإصداره.
+
+#### الخلاصة:
+
+- SYN Scan (-sS) سريع وتخفي.
+- Connect Scan (-sT) أدق لكن مكشوف.
+- UDP Scan (-sU) أبطأ وأصعب في التفسير.
+- Filtered ports تعني أن firewall موجود.
+- استخدم -sV لمعرفة الإصدارات لتخطيط الهجمات.
+- استخددم --packet-trace لفهم حركة الحزم أثناء الفحص.
+
+`Note : To Know The Hostname Of the IP`
+```bash
+sudo nmap -p 139,445 --script smb-os-discovery 192.168.x.x
+```
+
+
+
+
 
