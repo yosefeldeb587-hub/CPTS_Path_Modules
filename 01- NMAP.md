@@ -351,8 +351,56 @@ sudo nmap 10.129.2.28 -p 445 -sV --reason -Pn -n --disable-arp-ping --packet-tra
 ```bash
 sudo nmap -p 139,445 --script smb-os-discovery 192.168.x.x
 ```
+---
+### ليه لازم نحفظ النتائج ؟
+لما بتعمل Scans كتير بطرق مختلفة (مثلاً: TCP scan، UDP scan، أو Scans بسكريبتات معينة)، لازم تحفظ النتايج عشان:
+- تقارن النتايج ببعض.
+- تراجعها من غير ما تعيد الـ Scan (خصوصًا لو السيرفر بعيد أو النت بطيء).
+- تستخدمها في التقارير أو لما تسلم Proof of Work.
 
+### صيغ حفظ الملفات ب Nmap:
+1. normal output (-oN) => ملف بامتداد `.nmap`
+- نص عادي مقروء للبشر.
+```bash
+PORT   STATE SERVICE
+22/tcp open  ssh
+25/tcp open  smtp
+80/tcp open  http
+```
+2. Grepable output (-oG) => ملف امتداده `.gnmap`
+- بيكتب كله ف سطر واحد أو سطور بسيطة.
+- بيتفهم بسهولة بأوامر زي `grep` أو `awk` عشان الفتلرة.
+```bash
+Host: 10.129.2.28 ()  Status: Up
+Ports: 22/open/tcp//ssh///, 25/open/tcp//smtp///, 80/open/tcp//http///
+```
 
+3. XML output (-oX) =>ملف بصيغة `.xml`
+- منظم بشكل xml.
+- ممكن تحوله لأي شكل تاني (HTML,JSON) باستخدام `xsltproc`.
+```bash
+<port protocol="tcp" portid="22">
+  <state state="open"/>
+  <service name="ssh"/>
+</port>
+```
 
+### لو عايز تحفظ التلاتة مرة واحد مع بعض:
+بدل ما تعمل كل ملف واحد بواحد بتستخدم `-oA`:
+```bash
+sudo nmap 10.129.2.28 -p- -oA target
+```
+- `-p-` => لكل البورتات scan
+- `-oA target` => حفظ النتيجة في 3 ملفات بنفس الاسم بصيغ مختلفة:
+    - `target.nmap`
+    - `target.gnmap`
+    - `target.xml`
+#### Note:
+- لو مكتبتش الpath كامل هيتحفظو في المكان اللي انت واقف فيه.
 
-
+### تحويل ملف الxml لصفحة HTML مفهومة :
+عشان تعرض النتائج بشكل مرتب :
+```bash
+xsltproc target.xml -o target.html
+```
+- بعدها افتح `target.html` في المتصفح هتشوف جدول مرتب بكل البيانات.
