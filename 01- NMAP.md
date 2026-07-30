@@ -607,3 +607,21 @@ sudo nmap 10.129.2.28 -p 80 -sS -Pn -n -D RND:5
 **SYN Flood**: هجوم DoS بيستغل الـ TCP handshake عن طريق إرسال آلاف SYN packets من غير إكمال الـ handshake (مفيش ACK نهائي)، فالسيرفر بيفضل يحجز موارد لاتصالات "نص مفتوحة" لحد ما الـ connection queue تمتلي وميقدرش يستقبل اتصالات حقيقية جديدة.
 > Exploits half-open TCP connections to exhaust server resources and cause denial of service
 
+#### 2. تغيير عنوان المصدر(-S)
+- تختبر هل جدار الحماية بيمنع شبكات محددة فقط.
+```bash
+sudo nmap 10.129.2.28 -p 445 -O -S 10.129.2.200 -e tun0
+```
+- لو لقيتالمنفذ مفتوح => يبقى الحظر معمول على جهة الاتصال.
+
+#### 3. استخدام منفذ موثوق (--source-port53)
+- الFirewall غالبا بتسمح ب (port 53) DNS.
+- إذا استخدمت بورت 53 كمصدر للفحص ,قد يمر بدون حظر:
+```bash
+sudo nmap 10.129.2.28 -p 50000 -sS --source-port 53
+```
+- لو البورت بقا open بدل filtered ,يبقى الحماية عليه ضعيفة.
+- يمكنك حتى الاتصال مباشرة باستخدام netcat:
+```bash
+ncat -nv --source-port 53 10.129.2.28 50000
+```
