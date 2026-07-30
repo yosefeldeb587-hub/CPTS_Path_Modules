@@ -589,3 +589,21 @@ sudo nmap 10.129.2.28 -p 21,22,25 -sA -Pn -n
 ```
 - لو منفذ 22 رد بRST => يبقى ليس محمي (unfiltered).
 - لو 21,25 مردوش => عليهم حماية (filtered).
+
+### الكشف عن IPS/IDS
+- لو عملت Aggressive Scan ممكن الIPD/IDS يحظروا الip بتاعك.
+- لو انقطع وصولك للهدف بعد الفحص => غالبا فيه IPS.
+- الحل: استخدام عدة `VPS` او كذا `IP`.
+
+### تقنيات التخفي وتجاوز الحماية
+#### 1. استخدام (-D) Decoys
+- يضيف Nmap عدة IP وهمية لإخاء عنوانك الحقيقي.
+- مثال:
+```bash
+sudo nmap 10.129.2.28 -p 80 -sS -Pn -n -D RND:5
+```
+يعني استخدام 5 عناوين عشوائية كDecoys.
+- **Note:** **SYN flood** حقيقية (حية) وإلا قد يسبب Decoysيجيب أن تكون ال
+**SYN Flood**: هجوم DoS بيستغل الـ TCP handshake عن طريق إرسال آلاف SYN packets من غير إكمال الـ handshake (مفيش ACK نهائي)، فالسيرفر بيفضل يحجز موارد لاتصالات "نص مفتوحة" لحد ما الـ connection queue تمتلي وميقدرش يستقبل اتصالات حقيقية جديدة.
+> Exploits half-open TCP connections to exhaust server resources and cause denial of service
+
