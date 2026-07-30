@@ -556,3 +556,36 @@ sudo nmap 10.129.2.28 -p 80 -sV --script vuln
 
 **Note:** http-enum => بيدور في ملفات الويب سيرفر
 ---
+### ايه الفرق بين الFirewall والIDS/IPS ؟
+- **Firewall** => **Drop** أو يرميها **Reject** ممكن يرفض الحزمة.(port,ip,protocol) وبيقرر السماح أو الرفض بناء على packetsبيراقب ال
+> Against unauthorized connection attempts from external networks
+- **IDS** => بيراقب الشبكة ويكشف الهجمات المحتملة ويبلغ المسؤول
+>  scans the network for potential attacks, analyzes them, and reports any detected attacks
+- **IPS** => (ip إغلاق اتصال,حظر) لكن بينفذ اجراءات تلقائية مثل `IDS`شبه ال
+>complements `IDS` by taking specific defensive measures if a potential attack should have been detected
+
+### كيف تعرف بوجود الFirewall ؟
+- عندما يظهر المنفذ **filtered** وليس **open/closed** => يعني الحزم اللي تم إسقاطها بدون رد (Drop) أو رفضها (Reject) برسالة ICMP/RST.
+- الأخطاء المحتملة:
+    - Net Unreachable / Prohibited
+    - Host Unreachable / Prohibited
+    - Port Unreachable
+    - Proto Unreachable
+
+### طرق تجاوز الFirewall
+#### SYN Scan (-sS)
+- بيرسل حزمة SYN
+    - لو رجع SYN/ACK => البورت مفتوح.
+    - لو مفيش رد يبقى الFirewall بيعمل بلوك للSYN.
+- المشكلة هنا ان الFirewall بيبقى شايف انك عايز تبدأ اتصال كامل من جديد ف بيبقى شايفك ويقدر يمنعك بسهولة.
+#### ACK Scan (-sA)
+- بيرسل حزمة ACK
+    - لو رجع RST => يبقى البورت **unfiltered** (مفيش حاجة قدامه بتمنعه-سواء مفتوح أو مقفول)
+    - لو مفيش رد => البورت **filtered** (فيه **firewall** قدامه)
+- الميزة المهمة : معظم الجدران النارية بتسمح بمرور ACK لأنها مش بتقدر تحدد هل الاتصال ده بدأ من جوه الشبكة (داخليًا) ولا من برة (خارجيًا) - لأن الـ ACK نفسه مالوش سياق واضح لوحده، فبيفترض الـ Firewall غالبًا إنه رد على حاجة شرعية ,يعني من الاخر بيفكر أن الACK اللي جاية دي حاجة تبع اتصال قديم شغال ف مش بيفحصها بالقدر اللي بيفحص بيه الSYN لأنه بيعتبرها اتصال جديد وهو كذلك بالفعل.
+مثال:
+```bash
+sudo nmap 10.129.2.28 -p 21,22,25 -sA -Pn -n
+```
+- لو منفذ 22 رد بRST => يبقى ليس محمي (unfiltered).
+- لو 21,25 مردوش => عليهم حماية (filtered).
