@@ -186,3 +186,65 @@ sudo apt install vsftpd
   - `ssl_enable=NO` => إيقاف الاتصال بSSL (افتراضي).
 - ملف FTPUSERS:
   - يمنع بعض المستخدمين من الدخول حتى لو موجودين في النظام ,مكانه `/etc/ftpusers`.
+
+## Anonymous FTP - إعدادات خطيرة
+- ممكن يستخدم لتبادل الملفات داخليا بدون كلمات مرور ,لكن فيه مخاطر من الغدادات اللي ممكن تتضاف للAnonymous Login:
+  - `anonymous_enable=YES` => السماح بالدحول كمجهول.
+  - `anon_upload_enable=YES` => السماح للمجهول بالرفع.
+  - `anon_mkdir_write_enable=YES` => السماح للمجهول بإنشاء مجلدات.
+  - `no_anon_password=YES` => عدم طلب كلمة مرور.
+  - `anon_root=/home/username/ftp` => المجلد الخاص بالمجهولين.
+  - `write_enable=YES` => السماح بتنفيذ أوامر الكتابة.
+- مثال على الدخول كمجهول وعرض الملفات:
+```bash
+ftp 10.129.14.136
+Name: anonymous
+Password: any
+ftp> ls
+```
+- لرؤية محتوى كل المجلدات بالتفاصيل:
+```bash
+ftp> ls -R
+```
+## رفع وتنزيل الملفات
+- تنزيل الملفات من السيرفر:
+```bash
+ftp> get Important\ Notes.txt
+```
+- رفع الملفات على السيرفر:
+```bash
+ftp> put testupload.txt
+```
+- تنزيل كل الملفات دفعة واحدة:
+```bash
+wget -m --no-passive ftp://anonymous:anonymous@10.129.14.136
+```
+> الأمر الأخير بينشئ مجلد برقم IP السيرفر ويخزن كل الملفات فيه.
+
+## Footprinting - التعرف على الخدمة باستخدام Nmap
+- الNmap هي أداة قوية للتعرف على الخدمات وتشخيصها وكمن فيه NSE Scripts لمهام معينة زي التحقق من وجود anonymous login أو معرفة نسخة السيرفر.
+- مثال تحديث قاعدة بيانات السكريبتات:
+```bash
+sudo nmap --script-updatedb
+```
+- تشغيل مسح على FTP:
+```bash
+sudo nmap -sV -p21 -sC -A 10.129.14.136
+```
+- سكريبتات مهمة لFTP:
+- `ftp-anon` => اختبار الدخول كمجهول.
+- `ftp-syst` => عرض حالة السيرفر.
+- `ftp-brute` => محاولة تخمين كلمة المرور.
+
+## التفاعل مع الخدمة
+- ممكن نستخدم `nc` أو `telnet` للتواصل مباشرة مع السيرفر:
+```bash
+nc -nv 10.129.14.136 21
+telnet 10.129.14.136 21
+```
+- لو السيرفر مشفر ب SSL/TLS ,بنستخدم openssl:
+```bash
+openssl s_client -connect 10.129.14.136:21 -starttls ftp
+```
+> ده يسمح بمشاهدة شهادة SSL، اللي ممكن توفر معلومات عن hostname وemail وorganization.
+---
