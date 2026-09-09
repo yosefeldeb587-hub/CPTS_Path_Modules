@@ -172,3 +172,160 @@ Creation Date: 2019-08-05
 - لازم تستخدم WHOIS مع أساليب Recon تانية عشان تبني صورة كاملة.
 ---
 ## DNS - نظام أسماء النطاقات
+**هو دليل الانترنت أو GPS المواقع**
+- بدل ما نحفظ أرقام الIP زي (192.0.2.1) بنستخدم أسماء سهلة زي (www.example.com).
+- الDNS بيترجم الاسم إلى IP عشان الموقع يقدر يتواصل مع الموقع بسهولة وطريقة صحيحة.
+---
+## ازاي الDNS بيشتغل (خطوة بخطوة)
+1. DNS Query - يسأل جهازك الأول
+  - بيشوف لو جهازك حافظ العنوان عنده في ال**Cache**.
+  - لو مش موحجود بيسأل **DNS Resolver** (عادة بتاع ISP).
+2. Recursive Lookup - تبدأ رحلة الResolver
+  - لو الResolver مفيش عنده الإجابة ,بيبدأ يسأل في تسلسل الDNS:
+    - Root Server => بيعرف ال TLD المسؤول (.com & .org ....)
+    - TLD Server => بيعرفك بالسيرفر المسؤول عن الدومين كله
+    - Authoritative Server => بيديك ال IP النهائي
+3. الResolver بيرجع النتيجة للجهاز:
+  - ويحفظها مؤقتا ف الCache لتسريع المرات الجاية.
+4. الجهاز يتصل بالسيرفر:
+  - دلوقتي جهازك عارف الـ IP، فيوصل مباشرة للموقع.
+---
+## ملف Hosts - اختصار يدوي لDNS
+- مكانه في:
+  - Windows `C:\Windows\System32\drivers\etc\hosts`
+  - Linux & Mac `/etc/hosts`
+- بيسمح لك تربط اسم دومين بـ IP معين يدويًا.
+- بيشتغل قبل DNS (يعني بيعمل Override).
+**أمثلة**
+`127.0.0.1   localhost`
+`192.168.1.10   devserver.local`
+`0.0.0.0 unwanted-site.com`
+**وظيفتها**
+- تطوير المواقع (توجّه دومين لسيرفر محلي).
+- اختبار اتصال جهاز معين.
+- حظر مواقع مزعجة.
+---
+## ملفات DNS Zone - الخريطة الكاملة
+الـ DNS Zone (منطقة DNS) هي المساحة الإدارية المحددة داخل نظام الـ DNS والتي يمتلك شخص أو شركة واحدة السلطة والتحكم الكامل في جميع بياناتها وسجلاتها.
+**الملف ده بيعرفك**:
+- السيرفرات الرئيسية (NS Records)
+- السيرفرات المسؤولة عن البريد (MX Record)
+- عناوين الأجهزة (A Records)
+- الأسماء البديلة (CNAME Records)
+---
+## أشهر أنواع الDNS Records
+
+| النوع     | الوصف                         | مثال                                                                                      |
+| --------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| **A**     | يربط دومين بـ IPv4            | [www.example.com](http://www.example.com?utm_source=chatgpt.com) → 192.0.2.1              |
+| **AAAA**  | يربط دومين بـ IPv6            | [www.example.com](http://www.example.com?utm_source=chatgpt.com) → 2001:db8::1            |
+| **CNAME** | اسم مستعار لدومين آخر         | blog.example.com → webserver.example.net                                                  |
+| **MX**    | بريد إلكتروني                 | example.com → mail.example.com                                                            |
+| **NS**    | سيرفرات الـ DNS               | example.com → ns1.example.com                                                             |
+| **TXT**   | نصوص عشوائية (تحقق أو سياسات) | SPF records                                                                               |
+| **SOA**   | معلومات إدارية عن الدومين     | السيرفر الرئيسي، البريد المسؤول…                                                          |
+| **SRV**   | خدمة على دومين وبورت معين     | _sip._udp.example.com → sipserver.example.com                                             |
+| **PTR**   | عكس الـ DNS (IP → Domain)     | 1.2.0.192.in-addr.arpa → [www.example.com](http://www.example.com?utm_source=chatgpt.com) |
+
+---
+## ليه الDNS مهم في الWeb Recon ؟
+1. كشف الأصول المخفية (Uncovering Assets):
+  - ممكن تلاقي Subdomains أو سيرفرات بريد أو أجهزة قديمة عن طريق Records زي CNAME أو A.
+2. رسم خريطة الشبكة (Mapping Infrastructure):
+  - NS Records بتكشف مزود الخدمة.
+  - A Records ممكن تحدد Load Balancers أو مناطق معينة من الشبكة.
+3. متابعة التغييرات (Monitoring Changes):
+  - ظهور Subdomain جديد زي vpn.example.com → ممكن يبقى مدخل للشبكة.
+  - TXT Records
+  - فيها بيانات عن استخدام خدمات معينة (زي 1Password) → مفيدة للهندسة الاجتماعية.
+---
+## DNS Digging - التنقيب داخل DNS
+بعد ما فهمنا أساسيات الـ DNS وأنواع الـ Records، دلوقتي ندخل في الجزء العملي:
+**ازاي نستخدم أدوات لاستخراج معلومات مهمة عن الدومينات والسيرفرات ؟**
+---
+## أشهر أدوات الDNS Recon
+
+| الأداة                | المميزات                                             | الاستخدام                                          |
+| --------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| **dig**               | قوي ومرن – يدعم كل أنواع الاستعلام (A, MX, NS, TXT…) | تحليل عميق، Zone Transfer (**لو مسموح**)، حل مشاكل DNS |
+| **nslookup**          | بسيط – أساسي في أي نظام تشغيل                        | استعلام سريع عن A و MX Records                     |
+| **host**              | مخرجات مختصرة وسريعة                                 | استعلام سريع عن عناوين IP                          |
+| **dnsenum**           | تلقائي – يدعم Brute Force و Zone Transfer            | اكتشاف Subdomains بكفاءة                           |
+| **fierce**            | سهل الاستخدام – يدعم Recursive Search                | فحص شامل للـ Subdomains                            |
+| **dnsrecon**          | شامل – مخرجات بعدة صيغ                               | Enumeration متقدم ومخططات كاملة                    |
+| **theHarvester**      | OSINT – يجمع بيانات من مصادر مختلفة                  | جمع إيميلات وموظفين وسجلات DNS                     |
+| **Online DNS Lookup** | واجهة رسومية سهلة الاستخدام                          | بحث سريع بدون سطر الأوامر                          |
+
+
+|الأداة|المميزات الأساسية|متى تستخدمها؟|مستوى التفاصيل|
+|---|---|---|---|
+|**dig**|- أقوى وأشمل أداة- يدعم كل أنواع السجلات- مخرجات قابلة للتخصيص بالكامل|- تحليل متقدم- تتبع عملية حل الدومين- مشاكل DNS المعقدة|عالي جدًا|
+|**nslookup**|- بسيط ومتوفر في كل الأنظمة- مخرجات واضحة وسريعة|- فحص سريع لـ A / MX Records- استخدام يومي بدون تعقيد|متوسط|
+|**host**|- خفيف جدًا ومباشر- مخرجات مختصرة للغاية|- استعلامات بسيطة- الحصول على IP أو Mail Server بسرعة|منخفض|
+---
+## أداة Domain Information Groper - dig
+- الأداة الأقوى والأكثر مرونة لعمل استعلامات DNS متقدمة.
+- تُظهر نتائج تفصيلية قابلة للتخصيص.
+**أوامر شائعة**:
+```bash
+dig domain.com           ← استعلام A Record افتراضي
+dig domain.com A         ← استعلام IPv4 فقط
+dig domain.com AAAA      ← استعلام IPv6 فقط
+dig domain.com MX        ← معرفة سيرفرات البريد
+dig domain.com NS        ← معرفة السيرفرات المسؤولة عن الدومين
+dig domain.com TXT       ← جلب TXT Records
+dig domain.com SOA       ← معرفة بيانات المسؤول الرئيسية عن الدومين
+dig @1.1.1.1 domain.com  ← استعلام من DNS Server محدد
+dig +trace domain.com    ← تتبع كامل لعملية حل الدومين
+dig -x 192.168.1.1       ← Reverse Lookup (IP → Domain)
+dig +short domain.com    ← مخرجات مختصرة – فقط الإجابة
+dig +noall +answer domain.com ← إظهار قسم الإجابة فقط
+dig domain.com ANY       ← جلب كل الـ Records (ممكن بعض السيرفرات ترفض)
+```
+**تحذير**
+- بعض السيرفرات تراقب وتمنع الاستعلامات المفرطة.
+- دايمًا لازم تاخد إذن قبل عمل DNS Recon موسّع.
+---
+## تحليل مثال dig لـ google.com
+**الأمر**:
+```bash
+dig google.com
+```
+**الناتج بيظهر 4 أقسام رئيسية:**
+1. Header (الرأس)
+`;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 16449`
+  - opcode: QUERY → نوع الطلب هو Query
+  - status: NOERROR → مفيش أخطاء، الرد سليم
+  - id: 16449 → رقم مميز للاستعلام
+`;; flags: qr rd ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0`
+  - qr: هذا رد (Query Response)
+  - rd: طلب تكراري (Recursion Desired)
+  - ad: البيانات موثوقة (Authentic Data)
+  - الأرقام: سؤال واحد، جواب واحد، بدون سجلات سلطة أو إضافية
+`;; WARNING: recursion requested but not available`
+  - السيرفر لا يدعم الاستعلام التكراري (Recursive).
+2. Question Section
+`;google.com. IN A`
+  - بيسأل عن عنوان IPv4 (A Record) للدومين google.com
+3. Answer Section
+`google.com. 0 IN A 142.251.47.142`
+  - IP هو 142.251.47.142
+  - 0 TTL: يعني النتيجة ما تتخزنش طويل في الكاش.
+4. Footer (التذييل)
+`;; Query time: 0 msec`
+  - الاستعلام كان سريع جدًا
+`;; SERVER: 172.23.176.1#53(172.23.176.1) (UDP)`
+  - السيرفر اللي رجع النتيجة
+`;; WHEN: Thu Jun 13 10:45:58 SAST 2024`
+  - وقت تنفيذ الاستعلام
+`;; MSG SIZE rcvd: 54`
+  - حجم الرد 54 بايت
+---
+ملاحظات إضافية
+- **EDNS (Extension Mechanisms for DNS):**
+  - ممكن يظهر قسم إضافي (opt pseudosection) لدعم ميزات زي DNSSEC أو زيادة حجم الردود.
+- لو عايز الإجابة بس:
+`dig +short google.com`
+- النتيجة هتكون بس:
+`142.251.47.142`
+---
