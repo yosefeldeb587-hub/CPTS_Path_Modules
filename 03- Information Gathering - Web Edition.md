@@ -329,3 +329,139 @@ dig google.com
 - النتيجة هتكون بس:
 `142.251.47.142`
 ---
+## اهمية البحث عن الSubdomains
+- بيئات تطوير واختبار (Dev/Staging): غالبًا أقل أمانًا وقد تكشف معلومات حساسة.
+- بوابات تسجيل دخول مخفية: قد تحتوي لوحات تحكم أو صفحات غير مخصصة للعامة.
+- تطبيقات قديمة (Legacy Apps): برامج غير مُحدَّثة بها ثغرات معروفة.
+- معلومات حساسة: مثل ملفات إعدادات أو وثائق داخلية يمكن الوصول إليها.
+---
+## طرق اكتشاف الSubdomains
+1. Active Enumeration
+- الوصف: تتفاعل مباشرة مع خوادم DNS الخاصة بالهدف.
+- **الطرق الشائعة:**
+  - Zone Transfer: إذا كان السيرفر مُهيأ بشكل خاطئ، يمكن الحصول على كل السجلات.
+  - Brute Force: تجربة قائمة كلمات (Wordlist) لأسماء Subdomains.
+- **الأدوات:**
+  - `dnsenum`
+  - `ffuf`
+  - `gobuster`
+  > المميزات: دقة عالية وتحكم كامل.
+  > العيوب: أكثر وضوحًا وقابل للكشف.
+---
+2. Passive Enumeration
+- الوصف: تعتمد على مصادر خارجية بدون التواصل مع سيرفر الهدف مباشرة.
+- **الطرق الشائعة:**
+  - Certificate Transparency Logs: الشهادات تكشف أسماء Subdomains في SAN Field.
+  - محركات البحث (site:domain.com): لجمع روابط غير مكشوفة رسميًا.
+  - قواعد بيانات DNS عامة: مثل خدمات تجمع سجلات DNS من مصادر مختلفة.
+  >المميزات: أكثر سرية وصعوبة في الاكتشاف.
+  > العيوب: قد لا تعثر على كل Subdomains.
+---
+## ما هو الSubdomain Bruteforcing ؟
+- تعريف: تقنية نشطة (Active) لاكتشاف الـ Subdomains من خلال تجربة أسماء محتملة مسبقًا باستخدام Wordlists.
+- الهدف: العثور على Subdomains مخفية أو غير موثقة يمكن أن تكشف معلومات حساسة أو نقاط دخول محتملة.
+---
+## خطوات العملية 
+1. اختيار الWordlist:
+  - عام (General): كلمات شائعة مثل `dev`, `mail`, `admin`
+  - مستهدف (Targeted): أسماء مرتبطة بالصناعة أو الشركة.
+  - مخصص (Custom): إنشاء قائمة خاصة اعتمادًا على معلومات سابقة.
+2. Iteration and Querying
+  - يتم تجربة كل كلمة مع الدومين (مثال: `dev.example.com`).
+3. DNS Lookup
+  - التحقق مما إذا كان Subdomain يحلّ (Resolve) إلى عنوان IP (A أو AAAA Record).
+4. Filtering and Validation
+  - حفظ الـ Subdomains الصالحة
+  - أحيانًا اختبار الوصول عبر المتصفح للتحقق من وجود خدمة فعليًا
+---
+## أشهر الأدوات
+- **dnsenum** => شاملة، تدعم Zone Transfer وBruteforce وWHOIS
+- **fierce** => سهلة الاستخدام مع Recursive Search
+- **dnsrecon** => متعددة المميزات مع دعم مخرجات مخصصة
+- **amass** => قوية ومتكاملة مع أدوات OSINT
+- **assetfinder** => سريعة وخفيفة لفحص سريع
+- **puredns** => فعالة جدًا في الـ Brute-force مع فلترة ممتازة
+---
+## dnsenum - تفصيل
+**وظائف رئيسية:**
+- استخراج سجلات DNS المختلفة (A, AAAA, NS, MX, TXT)
+- محاولة Zone Transfer تلقائيًا
+- دعم Brute-Force لاكتشاف Subdomains باستخدام Wordlist
+- البحث عبر Google (Google Scraping) لاكتشاف روابط إضافية
+- Reverse DNS Lookup للكشف عن دومينات أخرى على نفس الـ IP
+- WHOIS Lookup لجمع بيانات الملكية والتسجيل
+**مثال عملي:**
+`dnsenum --enum inlanefreight.com \   -f /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt \   -r`
+- `--enum` => تشغيل مجموعة خيارات مُهيأة مسبقًا
+- `-f` => تحديد مسار الـ Wordlist
+- `-r` => Recursive Bruteforcing لاكتشاف Subdomains متداخلة
+**مخرجات نموذجية:**
+- `www.inlanefreight.com → 134.209.24.248`
+- `support.inlanefreight.com → 134.209.24.248`
+---
+## الخلاصة
+- **Bruteforcing = فعال لكنه صاخب ويمكن اكتشافه**
+- **dnsenum = أداة قوية تجمع بين عدة تقنيات (DNS Records + Zone Transfer + Bruteforce + WHOIS + Google)**
+- **أفضل الممارسات: الجمع بين Active و Passive Enumeration لضمان تغطية شاملة**
+---
+## ما هو DNS Zone Transfer ؟
+- **تعريف:**
+آلية تُستخدم لمزامنة سجلات DNS بين خوادم الـ DNS الأساسية (Primary) والثانوية (Secondary).
+- **الوظيفة الأساسية**:
+  - ضمان تطابق جميع بيانات الدومين والـ Subdomains بين الخوادم.
+  - يستخدم نوع الاستعلام AXFR (Full Zone Transfer) لنقل جميع السجلات.
+---
+## كيف تتم عملية Zone Transfer ؟
+1. **طلب النقل (AXFR Request)**
+الخادم الثانوي يطلب نسخة من البيانات من الخادم الأساسي.
+2. **نقل السجل (Start Of Authority) SOA**
+- يحتوي على رقم التسلسل لمراجعة حداثة البيانات.
+```bash
+example.com.  3600  IN  SOA  ns1.example.com. admin.example.com. (
+             2025090201 ; serial
+             7200       ; refresh (2 hours)
+             3600       ; retry (1 hour)
+             1209600    ; expire (2 weeks)
+             3600       ; minimum TTL (1 hour)
+```
+3. **إرسال السجلات (A,AAAA,MX,NS,TXT,...)**
+- الخادم الأساسي يرسل جميع بيانات الدومين والـ Subdomains.
+4. **إكمال النقل (Zone Transfer Complete)**
+- الخادم الأساسي يؤكد انتهاء النقل.
+5. **إقرار الاستلام (ACK)**
+- الخادم الثانوي يرسل رسالة تؤكد استلام البيانات بنجاح.
+---
+## أين توجد الثغرة ؟
+- **المشكلة:**
+إذا كان الخادم الأساسي يسمح لأي عميل **بطلب Zone Transfer (بدون تقييد)**، يمكن لأي شخص تحميل ملف الـ Zone بالكامل.
+- **النتيجة:**
+يحصل المهاجم على:
+  - قائمة كاملة بالـ Subdomains
+  - عناوين الـ IP المرتبطة بها
+  - تفاصيل عن Name Servers والبنية التحتية
+  `dig @ns1.example.com example.com AXFR`
+---
+## لماذا يعتبر خطيرا ؟
+- كشف بيئات تطوير أو إدارة غير معلنة.
+- تحديد عناوين IP مباشرة لاستهدافها.
+- التعرف على مزوّد الخدمة ومشاكل التهيئة.
+---
+## كيف يتم منعه ؟
+- السماح بعملية Zone Transfer **فقط لخوادم DNS الثانوية الموثوقة.**
+- تحديث إعدادات الـ DNS لمنع الوصول العام (Access Control).
+---
+## كيفية الاستغلال عمليا
+**باستخدام dig:**
+```bash
+dig axfr @nsztm1.digi.ninja zonetransfer.me
+```
+- axfr = طلب نقل كامل للمنطقة.
+- @nsztm1.digi.ninja = الخادم المسؤول عن الدومين. => (xالموظف اللي بيرح يجيبلك المعلومات)
+- zonetransfer.me = الدومين الهدف.
+**إذا كان السيرفر مهيئا بشكل خاطئ :**
+- سيُرجع قائمة شاملة بكل السجلات (A, MX, TXT, NS, PTR, SRV…).
+- مثال من الإخراج:
+  - `zonetransfer.me. IN A 5.196.105.14`
+  - `www.zonetransfer.me. IN PTR 14.105.196.5`
+  - `canberra-office.zonetransfer.me. IN A 202.14.81.230`
+---
